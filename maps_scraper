@@ -1,0 +1,246 @@
+from playwright.sync_api import sync_playwright, TimeoutError
+import csv, os, time
+from datetime import datetime, timezone
+from urllib.parse import quote
+from src.utils.logger import log
+
+
+# =========================
+# CONFIG
+# =========================
+
+CITIES = ["Orlando, FL", "Tallahassee, FL", "Sarasota, FL"]
+KEYWORDS = ["salon", "hair salon", "nail salon", "beauty salon"]
+
+DISCOVERY_SCROLL_LIMIT = 140
+STALL_LIMIT = 8
+MAX_RETRIES = 3
+
+BATCH_SIZE = 120              # extract then recycle browser
+EXTRACTION_HEADLESS = True
+
+DISCOVERY_CSV = "data/raw/salons_discovered.csv"
+FINAL_CSV = "data/raw/salons_stage1.csv"
+
+
+# =========================
+# DISCOVERY
+# =========================
+
+def discover_salons(page, city, keyword):
+    log(f"[DISCOVERY] {city} | {keyword}")
+    url = f"https://www.google.com/maps/search/{quote(city + ' ' + keyword)}"
+
+    # -------------------------
+    # RESILIENT LOAD BLOCK
+    # -------------------------
+    loaded = False
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            page.goto(url, timeout=60000, wait_until="domcontentloaded")
+            page.wait_for_selector('div[role="feed"]', timeout=25000)
+            loaded = True
+            break
+
+        except TimeoutError:
+            log(f"[DISCOVERY TIMEOUT {attempt}] {city} | {keyword}")
+            if attempt == MAX_RETRIES:
+                log(f"[DISCOVERY SKIPPED] {city} | {keyword}")
+                return set()
+            time.sleep(3)
+
+        except Exception as e:
+            log(f"[DISCOVERY ERROR {attempt}] {city} | {keyword} | {e}")
+            if attempt == MAX_RETRIES:
+                return set()
+            time.sleep(3)
+
+    if not loaded:
+        return set()
+
+    # -------------------------
+    # HIGH-YIELD SCROLL ENGINE
+    # -------------------------
+    feed = page.query_selector('div[role="feed"]')
+    discovered = set()
+    last_height = 0
+    stall = 0
+
+    for _ in range(DISCOVERY_SCROLL_LIMIT):
+        page.evaluate("f => f.scrollTop = f.scrollHeight", feed)
+        page.wait_for_timeout(1200)
+
+        cards = page.query_selector_all('a[href*="/place/"]')
+        for c in cards:
+            href = c.get_attribute("href")
+            name = c.get_attribute("aria-label")
+            if href and "/place/" in href:
+                discovered.add((href.split("?")[0], name.strip() if name else "Unknown"))
+
+        height = page.evaluate("f => f.scrollHeight", feed)
+
+        if height == last_height:
+            stall += 1
+            if stall >= STALL_LIMIT:
+                break
+        else:
+            stall = 0
+
+        last_height = height
+
+    log(f"[FOUND] {city} | {keyword} → {len(discovered)} salons")
+    return discovered
+
+
+# =========================
+# EXTRACTION
+# =========================
+
+def extract_salon_details(browser, maps_url):
+    page = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            page = browser.new_page()
+            page.goto(maps_url, timeout=60000)
+            page.wait_for_selector("h1", timeout=15000)
+            time.sleep(1)
+
+            # Extraction logic
+            name_el = page.query_selector("h1")
+            name = name_el.inner_text().strip() if name_el else "Unknown"
+
+            website = ""
+            site_el = page.query_selector('a[data-item-id="authority"], a[aria-label*="Website"]')
+            if site_el:
+                website = site_el.get_attribute("href")
+
+            city_state = ""
+            addr = page.query_selector('button[data-item-id="address"]')
+            if addr:
+                city_state = addr.inner_text().strip()
+
+            return {
+                "salon_name": name,
+                "maps_url": maps_url,
+                "website": website,
+                "city_state": city_state
+            }
+
+        except TimeoutError:
+            log(f"[TIMEOUT {attempt}] {maps_url}")
+            time.sleep(1)
+        except Exception as e:
+            log(f"[ERROR {attempt}] {maps_url} | {e}")
+            time.sleep(1)
+        finally:
+            if page:  # only close if page exists
+                page.close()
+
+    log(f"[GAVE UP] {maps_url}")
+    return None
+
+
+# =========================
+# CSV UTILITIES
+# =========================
+
+def read_existing_urls(path):
+    if not os.path.exists(path):
+        return set()
+    with open(path, newline="", encoding="utf-8") as f:
+        return {row["maps_url"] for row in csv.DictReader(f)}
+
+def append_csv(path, rows, headers):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    exists = os.path.exists(path)
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        if not exists:
+            writer.writeheader()
+        writer.writerows(rows)
+
+
+# =========================
+# PIPELINE
+# =========================
+
+def run_pipeline():
+    discovered_map = {}
+
+    # -------- DISCOVERY --------
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+
+        for city in CITIES:
+            for keyword in KEYWORDS:
+                results = discover_salons(page, city, keyword)
+                for url, name in results:
+                    if url not in discovered_map:
+                        discovered_map[url] = {
+                            "salon_name": name,
+                            "maps_url": url,
+                            "city_state": city
+                        }
+
+        browser.close()
+
+    log(f"[DISCOVERY COMPLETE] Total unique salons: {len(discovered_map)}")
+
+    append_csv(DISCOVERY_CSV, discovered_map.values(),
+               ["salon_name", "maps_url", "city_state"])
+
+    # -------- EXTRACTION --------
+    already_done = read_existing_urls(FINAL_CSV)
+    targets = [u for u in discovered_map if u not in already_done]
+
+    log(f"[RESUME] {len(already_done)} already processed")
+    log(f"[EXTRACTION QUEUE] {len(targets)} remaining")
+
+    processed = 0
+    buffer = []
+
+    with sync_playwright() as p:
+        for i in range(0, len(targets), BATCH_SIZE):
+
+            log(f"[BATCH] {i} → {i+BATCH_SIZE}")
+            browser = p.chromium.launch(headless=EXTRACTION_HEADLESS)
+
+            batch = targets[i:i+BATCH_SIZE]
+            for maps_url in batch:
+                data = extract_salon_details(browser, maps_url)
+                if not data or not data["website"]:
+                    continue
+
+                buffer.append({
+                    "salon_name": data["salon_name"],
+                    "maps_url": maps_url,
+                    "website": data["website"],
+                    "city_state": data["city_state"],
+                    "scraped_at": datetime.now(timezone.utc).isoformat()
+                })
+
+                processed += 1
+                if processed % 25 == 0:
+                    log(f"[EXTRACTED] {processed}")
+
+            append_csv(FINAL_CSV, buffer,
+                       ["salon_name", "maps_url", "website", "city_state", "scraped_at"])
+            buffer.clear()
+
+            browser.close()
+            time.sleep(8)   # session cool-down
+
+    log("========== STAGE 1 COMPLETE ==========")
+    log(f"Discovered: {len(discovered_map)}")
+    log(f"Final total saved to CSV")
+
+
+# =========================
+# ENTRYPOINT
+# =========================
+
+if __name__ == "__main__":
+    log("Stage 1 started")
+    run_pipeline()
+    log("Stage 1 finished")
