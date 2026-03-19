@@ -1,0 +1,21 @@
+salon_name,city,website,booking_status,booking_provider,digital_score,lead_temperature,lead_value,best_contact_method,emails,phones,instagram,facebook,booking_confidence,page_count,has_forms,has_google_analytics,has_facebook_pixel,qualified,status
+
+Salon A,"Orlando, FL",example1.com,manual,manual_contact,80,hot,high,email,contact@salon.com,555-354-####,https://www.instagram/salon_A,https://www.facebook.com/salonA,0.85,3,FALSE,TRUE,FALSE,TRUE,qualified
+
+Salon B,"Tallahessee, FL",example2.com,manual,manual_contact,80,hot,high,email,salon@gmail.com,850-444-####,https://www.instagram/salon_B,https://www.facebook.com/salonB,0.7,4,FALSE,FALSE,TRUE,TRUE,qualified
+
+Salon C,"Orlando, FL",example3.com,manual,manual_contact,75,hot,high,email,info@salon.com,321-567-####,https://www.instagram/salon_C,None,0.75,3,TRUE,FALSE,FALSE,TRUE,qualified
+
+Spa A,"Sarasota, FL",example4.com,manual,manual_form,75,hot,high,phone,None,781-890-####,https://www.instagram/spa_A,https://www.facebook.com/spaA,0.78,2,FALSE,TRUE,TRUE,TRUE,qualified
+
+Salon D,"Orlando, FL",None,manual,manual_form,70,hot,high,phone,hello@salon.com,440-995-####,None,https://www.facebook.com/salonD,0.65,0,TRUE,FALSE,FALSE,TRUE,qualified
+
+Spa B,"Tallahessee, FL",example6.com,manual,manual_contact,70,hot,high,phone,spa@yahoo.com,990-246-####,https://www.instagram/spa_B,https://www.facebook.com/spaB,0.75,4,FALSE,TRUE,TRUE,TRUE,qualified
+
+Salon E,"Tallahessee, FL",example7.com,manual,manual_form,65,warm,high,email,hello@salon.com,342-678-####,https://www.instagram/salon_E,https://www.facebook.com/salonE,0.85,3,TRUE,FALSE,FALSE,TRUE,qualified
+
+Spa C,"Sarasota, FL",example8.com,manual,manual_contact,65,warm,high,phone,info@spa.com,555-786-####,https://www.instagram/spa_C,https://www.facebook.com/salonC,0.9,2,FALSE,FALSE,FALSE,TRUE,qualified
+
+Spa D,"Orlando, FL",example9.com,manual,manual_contact,60,warm,high,email,contact@spa.com,750-678-####,https://www.instagram/spa_D,None,0.6,2,FALSE,TRUE,FALSE,TRUE,qualified
+
+Spa E,"Sarasota, FL",example10.com,manual,manual_contact,55,warm,medium,phone,None,850-656-####,None,https://www.facebook.com/salonE,0.55,2,FALSE,FALSE,FALSE,TRUE,qualified
