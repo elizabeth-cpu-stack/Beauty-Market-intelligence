@@ -1,0 +1,21 @@
+salon_name,city,website,booking_status,booking_provider,digital_score,lead_temperature,lead_value,best_contact_method,emails,phones,instagram,facebook,booking_confidence,page_count,has_forms,has_google_analytics,has_facebook_pixel,qualified,status
+
+Spa A,"Tallahessee, FL",example1.com,saas,fresha,85,hot,high,email,hello@spa.com,321-555-####,https://www.instagram.com/spa_A,https://www.facebook.com/salonA,1,4,TRUE,TRUE,TRUE,TRUE,qualified
+
+Salon A,"Orlando, FL",example2.com,saas,mangomint,85,hot,high,email,hey@salon.com,778-895-####,https://www.instagram/salon_A,None,1,4,TRUE,TRUE,FALSE,TRUE,qualified
+
+Salon B,"Sarasota, FL",example3.com,saas,setmore,85,hot,high,phone,salon@gmail.com,786-678-####,None,https://www.facebook.com/salonB,1,3,FALSE,FALSE,TRUE,TRUE,qualified
+
+Spa B,"Tallahessee, FL",example4.com,saas,acuity,80,hot,high,email,info@spa.com,850-444-####,https://www.instagram/spa_B,https://www.facebook.com/spaB,1,3,FALSE,FALSE,FALSE,TRUE,qualified
+
+Salon C,"Sarasota, FL",example5.com,saas,booksy,80,hot,high,email,hi@salon.com,555-345-####,https://www.instagram/salon_C,https://www.facebook.com/salonC,1,4,FALSE,FALSE,FALSE,TRUE,qualified
+
+Spa C,"Sarasota, FL",example6.com,saas,booker,75,hot,high,phone,None,785-097-####,https://www.instagram/spa_C,https://www.facebook.com/salonC,1,2,TRUE,TRUE,FALSE,TRUE,qualified
+
+Salon D,"Orlando, FL",example7.com,saas,square,70,hot,high,email,contact@salon.com,865-908-####,None,https://www.facebook.com/salonD,1,2,FALSE,FALSE,FALSE,TRUE,qualified
+
+Salon E,"Orlando, FL",example8.com,saas,phorest,65,warm,high,email,hello@salon.com,750-430-####,https://www.instagram/salon_E,None,1,2,FALSE,FALSE,FALSE,TRUE,qualified
+
+Spa D,"Tallahessee, FL",example9.com,saas,vagaro,65,warm,high,phone,None,850-367-####,https://www.instagram/spa_D,https://www.facebook.com/spaD,1,3,TRUE,FALSE,FALSE,TRUE,qualified
+
+Spa E,"Tallahessee, FL",example10.com,saas,glossgenius,60,warm,high,email,info@spa.com,990-800-####,https://www.instagram/spa_E,https://www.facebook.com/spaE,1,3,FALSE,FALSE,FALSE,TRUE,qualified
